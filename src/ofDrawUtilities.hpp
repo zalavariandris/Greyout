@@ -15,8 +15,8 @@ void ofDrawMeshString(const ofTrueTypeFont & font, string text, float x, float y
 void draw_test_stripes(shared_ptr<ofBaseGLRenderer> gl, ofVec2f size, float deg);
 shared_ptr<ofImage> make_image(ofVec2f size, const std::function<void(int w, int h)>& f);
 float compare_images(const ofImage & A, const ofImage & B);
-float compare_lightness(const ofImage & A, const ofImage & B);
-float compare_lightness_to_grey(const ofImage & A);
+float compare_brightness(const ofImage & A, const ofImage & B);
+float compare_brightness_to_grey(const ofImage & A);
 
 //
 ofVec2f bw_size(size_t length);

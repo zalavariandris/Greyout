@@ -79,6 +79,7 @@ vector<shared_ptr<Chromosome>> Chromosome::uniform_crossover(vector<shared_ptr<C
  Population
  */
 void Population::init(int size){
+    candidates.clear();
     generation = 0;
     for(int i=0;i<size; i++){
         shared_ptr<Candidate> candidate = make_shared<Candidate>();
@@ -107,7 +108,7 @@ void Population::breed(){
     int SIZE = size();
 
     
-    vector<shared_ptr<Candidate>> offsprings; // allocate next generation
+    vector<shared_ptr<Candidate>> offsprings; // the next generation of candidates
 
     while (offsprings.size() < candidates.size()) {
         // Tournament Selection
@@ -142,7 +143,7 @@ void Population::breed(){
      NEXT GENERATION
      http://cstheory.stackexchange.com/questions/14758/tournament-selection-in-genetic-algorithms
      You can either throw all the parents away and just do P = C (generational replacement), you can keep a few members of P and replace the rest with members of C (elitist replacement), you can merge them together and take the best N of the 2N total (truncation replacement)
-     genereational replacement!
+     Here, I'm using genereational replacement.
      */
 
     cost_history.push_back(best()->cost);

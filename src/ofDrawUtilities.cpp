@@ -135,7 +135,7 @@ float compare_images(const ofImage & A, const ofImage & B){
     return diff;
 }
 
-float compare_lightness(const ofImage & A, const ofImage & B){
+float compare_brightness(const ofImage & A, const ofImage & B){
     //    assert(A.getWidth() == B.getWidth() && A.getHeight() == B.getHeight());
     ofPixels pixelsA = A.getPixels();
     ofPixels pixelsB = B.getPixels();
@@ -154,7 +154,7 @@ float compare_lightness(const ofImage & A, const ofImage & B){
     return diff;
 }
 
-float compare_lightness_to_grey(const ofImage & A){
+float compare_brightness_to_grey(const ofImage & A){
     //    assert(A.getWidth() == B.getWidth() && A.getHeight() == B.getHeight());
     ofPixels pixelsA = A.getPixels();
     

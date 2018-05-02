@@ -8,12 +8,15 @@
 #include "ofEye.hpp"
 #include "GA.hpp"
 using namespace boost::coroutines2;
+
+
 class ofApp : public ofBaseApp{
 	public:
 		void setup();
 		void update();
 		void draw();
         void onGui();
+    
     
     // Algorithms
     // a) GA-camera
@@ -40,6 +43,21 @@ class ofApp : public ofBaseApp{
     GA::Population pop;
     shared_ptr<GA::Candidate> best_candidate;
     bool play;
+    void decode(shared_ptr<GA::Candidate> candidate);
+    void evaluate(shared_ptr<GA::Candidate> candidate, shared_ptr<ofImage> environment);
+    
+    // properties
+    enum Mutation:int {MutationUniform, MutationTweak};
+    enum Crossover:int {CrossoverUniform};
+    enum Decode:int {DecodeColor, DecodeGreyscale, DecodeIndex};
+    enum Evaluate:int {EvaluateCompareColor, EvaluateCompareGreyscale, EvaluateCaptureGreyness};
+    
+    int mutationMethod{MutationUniform};
+    int crossoverMethod{CrossoverUniform};
+    int decodeMethod{DecodeColor};
+    int evaluateMethod{EvaluateCompareColor};
+    
+    int cameraLatency{0};
 };
 
 
