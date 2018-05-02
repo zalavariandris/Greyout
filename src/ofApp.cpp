@@ -145,12 +145,6 @@ void ofApp::step_GAImage_coroutine(coroutine<void>::pull_type &VSYNC){
     }
 }
 
-struct Signal{
-    int k;
-    vector<float> values;
-    Signal(int max_size) : values(max_size), k(0){}
-};
-
 namespace ImGui{
     void Image(shared_ptr<ofImage> image, const ImVec2 &size){
         ImGui::Image((void *)(intptr_t) (image->isAllocated() ? image->getTexture().getTextureData().textureID : 0), size);
@@ -158,33 +152,11 @@ namespace ImGui{
     void Image(shared_ptr<ofImage> image){
         ImGui::Image(image, ImVec2(image->getWidth(), image->getHeight()));
     }
-    
-//    PlotLines(const char* label, const float* values, int values_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2(0,0), int stride = sizeof(float));
-    void PlotSignal(const char *label, const float value, int max_size=0, bool scroll=false, const char* overlay_text=NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2(0,0), int stride = sizeof(float)){
-        static vector<float> values(max_size);
-        static int k=0;
-        static Signal signal(10);
-        
-        if(max_size)
-            values[remainder(k, max_size)] = value;
-        else
-            values.push_back(value);
-    
-        ImGui::PlotLines("", values.data(), max_size ? max_size : values.size(), scroll ? k : 0, overlay_text, scale_min, scale_max, graph_size, stride);
-        k++;
-    }
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    gui.begin();
     static int algorithm{0};
-    ImGui::Text("algorithm");
-    ImGui::RadioButton("pause", &algorithm, 0);
-    ImGui::RadioButton("image", &algorithm, 1);
-    ImGui::RadioButton("projection", &algorithm, 2);
-    
-    static bool play{true};
     switch (algorithm) {
         case 1:
             step_GAImage();
@@ -197,6 +169,11 @@ void ofApp::draw(){
     }
     
     /* GUI */
+    gui.begin();
+    ImGui::Text("algorithm");
+    ImGui::RadioButton("pause", &algorithm, 0);
+    ImGui::RadioButton("image", &algorithm, 1);
+    ImGui::RadioButton("projection", &algorithm, 2);
     onGui();
     gui.end();
 }
@@ -212,6 +189,7 @@ void ofApp::onGui(){
     static bool candidates_window{true};
     static bool statistics_window{true};
     static bool profiler_window{false};
+    
     if (ImGui::BeginMenuBar())
     {
         if (ImGui::BeginMenu("Windows"))
@@ -227,6 +205,7 @@ void ofApp::onGui(){
     
     if (ImGui::CollapsingHeader("Eye"))
         ImGui::Eye(*camera);
+    
     if (ImGui::CollapsingHeader("GA")){
         ImGui::Text("population size: %lu", pop.size());
         ImGui::Text("mutation rate: ");
@@ -239,29 +218,42 @@ void ofApp::onGui(){
         ImGui::Text("crossover type");
         ImGui::RadioButton("uniform_crossover", &crossover_type, 0);
         ImGui::Text("Chromosome length: %lu", pop.size()>0 ? pop.candidate(0)->genes->length() : -1);
-        static int parse_method{0};
-        ImGui::Text("parse method");
-        ImGui::RadioButton("rgb", &parse_method, 0); ImGui::SameLine();
-        ImGui::RadioButton("b&w", &parse_method, 1);
+        static int decode_method{0};
+        ImGui::Text("decode method");
+        ImGui::RadioButton("rgb", &decode_method, 0); ImGui::SameLine();
+        ImGui::RadioButton("b&w", &decode_method, 1); ImGui::SameLine();
+        ImGui::RadioButton("idx", &decode_method, 2);
     }
+    
     if(eye_window){
         ImGui::Begin("Eye", &eye_window, ImGuiWindowFlags_NoCollapse);
         ImGui::Image(camera->buffer, ImGui::GetContentRegionAvail());
         ImGui::End();
     }
+    
     if(candidates_window){
-        ImGui::Begin("Candidates", &candidates_window, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize);
-        ImVec2 size(20, 20);
-        for(auto candidate : pop){
-            ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTexture().getTextureData().textureID : 0), size);
-            ImGui::SameLine();
-            ImGui::Image((void *)(intptr_t) (candidate->capture ? candidate->capture->getTexture().getTextureData().textureID : 0), size);
-            ImGui::SameLine();
-            
-            ImGui::Text("%6.3f", candidate->cost);
-            if(ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + size.x*2 <= ImGui::GetContentRegionAvailWidth())
+        ImGui::Begin("Candidates", &candidates_window, ImGuiWindowFlags_NoCollapse);
+        static int folder_view{0};
+        static int size{40};
+        ImGui::RadioButton("icons", &folder_view, 0); ImGui::SameLine();
+        ImGui::RadioButton("details", &folder_view, 1); ImGui::SameLine();
+        ImGui::PushItemWidth(100);
+        ImGui::SliderInt("size", &size, 5, 200);
+        if(folder_view==0)
+            for(auto candidate : pop){
+                ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTexture().getTextureData().textureID : 0), ImVec2(size, size));
+                
+                if(ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + size <= ImGui::GetContentRegionAvailWidth())
+                    ImGui::SameLine();
+            }
+        else if(folder_view==1)
+            for(auto candidate : pop){
+                ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTexture().getTextureData().textureID : 0), ImVec2(size, size));
                 ImGui::SameLine();
-        }
+                ImGui::Image((void *)(intptr_t) (candidate->capture ? candidate->capture->getTexture().getTextureData().textureID : 0), ImVec2(size, size));
+                ImGui::SameLine();
+                ImGui::Text("%6.3f", candidate->cost);
+            }
         ImGui::End();
     }
     if(statistics_window){
