@@ -54,10 +54,14 @@ class ofApp : public ofBaseApp{
     
     int mutationMethod{MutationUniform};
     int crossoverMethod{CrossoverUniform};
-    int decodeMethod{DecodeColor};
-    int evaluateMethod{EvaluateCompareColor};
+    int decodeMethod{DecodeGreyscale};
+    int evaluateMethod{EvaluateCompareGreyscale};
     
-    int cameraLatency{0};
+    int cameraLatency{4};
+    
+    vector<float> best_history;
+    ofRectangle camera_clip{0.0f,0.0f,320.0f,240.0f};
+    ofRectangle projection_rect{0.0f,0.0f,320.0f, 240.0f};
 };
 
 

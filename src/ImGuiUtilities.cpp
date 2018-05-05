@@ -6,6 +6,73 @@
 //
 
 #include "ImGuiUtilities.hpp"
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui_internal.h"
+
+void ImGui::Image(shared_ptr<ofImage> image, const ImVec2 &size){
+    ImGui::Image((void *)(intptr_t) (image->isAllocated() ? image->getTexture().getTextureData().textureID : 0), size);
+}
+void ImGui::Image(shared_ptr<ofImage> image){
+    ImGui::Image(image, ImVec2(image->getWidth(), image->getHeight()));
+}
+
+void ImGui::ClipImage(const char* label, shared_ptr<ofImage> image, const ImVec2 &size, float* x, float* y, float* w, float* h){
+    
+    Image(image, size);
+    ImGuiWindow* window = GetCurrentWindow();
+    if (window->SkipItems)
+        return;
+    
+    ImGuiContext& g = *GImGui;
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    //
+    
+    //        const bool value_changed = DragBehavior(frame_bb, id, v, v_speed, v_min, v_max, decimal_precision, power);
+    //
+    
+    ImVec2 scale = size / ImVec2(image->getWidth(), image->getHeight());
+    
+    ImRect bb(GetItemRectMin(), GetItemRectMax());
+    ImRect clip_bb(bb.Min + ImVec2(*x, *y) * scale,
+                   bb.Min + (ImVec2(*x, *y)+ImVec2(*w, *h)) * scale);
+    
+    window->DrawList->AddRect(clip_bb.Min,
+                              clip_bb.Max,
+                              GetColorU32(ImGuiCol_Text));
+    
+    // save current cursor pos
+    ImVec2 cursor_pos = ImGui::GetCursorPos();
+    ImGui::SetCursorPos(clip_bb.Min - ImGui::GetWindowPos() + ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()));
+    ImGui::Button("##min", ImVec2(20, 20));
+    if (ImGui::IsItemActive() && io.MouseDelta.x != 0.0f)
+    {
+        *x += io.MouseDelta.x/scale.x;
+        *y += io.MouseDelta.y/scale.y;
+        *w -= io.MouseDelta.x/scale.x;
+        *h -= io.MouseDelta.y/scale.y;
+        
+        
+    }
+    ImGui::SameLine();
+    ImGui::Text("%s [%0.0f,%0.0f]", label, *x, *y);
+    ImGui::SetCursorPos(clip_bb.Max - ImGui::GetWindowPos() + ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY())-ImVec2(20, 20));
+    
+    ImGui::Button("##max", ImVec2(20, 20));
+    if (ImGui::IsItemActive() && io.MouseDelta.x != 0.0f)
+    {
+        *w += io.MouseDelta.x/scale.x;
+        *h += io.MouseDelta.y/scale.y;
+        
+    }
+    ImGui::SameLine();
+    ImGui::Text("[%0.0f,%0.0f]", *w, *h);
+    // restore cursor
+    ImGui::SetCursorPos(cursor_pos);
+    
+    //        window->DrawList->AddText(clip_bb.Min, GetColorU32(ImGuiCol_Text), label);
+    
+}
 
 void ImGui::Eye(ofEye & eye){
     bool autogain {eye.getAutogain()};
@@ -85,9 +152,10 @@ void ImGui::App(ofApp & app){
     if(frame_rates.size()>50)
         frame_rates.erase(frame_rates.begin(), frame_rates.begin()+1);
     
-    ImGui::Text("%2.0ffps", ofGetFrameRate());
+    
     ImGui::SameLine();
     ImGui::PlotLines("", frame_rates.data(), frame_rates.size(), 0, "", 0, 128);
+    ImGui::Text("%2.0ffps", ofGetFrameRate());
 }
 
 //void ImGui::Pro(Profiler & profiler){

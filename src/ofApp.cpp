@@ -1,7 +1,7 @@
 #include "ofApp.hpp"
 #include "ofDrawUtilities.hpp"
 #include "ImGuiUtilities.hpp"
-#include "imgui_tabs.h"
+
 
 template<class T>
 int remainder(T a, T b){
@@ -57,23 +57,27 @@ void ofApp::evaluate(shared_ptr<GA::Candidate> candidate, shared_ptr<ofImage> en
     if(evaluateMethod == EvaluateCompareColor){
         ofVec2f size = rgb_size(candidate->genes->length(), 3);
         candidate->capture = make_image(size, [&](int w, int h){
-            environment->draw(0,0,w,h);
+            environment->drawSubsection(0, 0, w, h, camera_clip.x, camera_clip.y, camera_clip.width, camera_clip.height);
         });;
         candidate->cost = compare_images(*candidate->image, *candidate->capture);
     }else if(evaluateMethod == EvaluateCompareGreyscale){
         ofVec2f size = bw_size(candidate->genes->length());
         candidate->capture = make_image(size, [&](int w, int h){
-            environment->draw(0,0,w,h);
-        });;
+            environment->drawSubsection(0, 0, w, h, camera_clip.x, camera_clip.y, camera_clip.width, camera_clip.height);
+        });
         candidate->cost = compare_brightness(*candidate->image, *candidate->capture);
     }else if(evaluateMethod == EvaluateCaptureGreyness){
-        candidate->cost = std::numeric_limits<float>::infinity();
+        ofVec2f size = bw_size(candidate->genes->length());
+        candidate->capture = make_image(size, [&](int w, int h){
+            environment->drawSubsection(0, 0, w, h, camera_clip.x, camera_clip.y, camera_clip.width, camera_clip.height);
+        });
+        candidate->cost = compare_brightness_to_grey(*candidate->capture);
     }
 }
 
 void ofApp::step_GACamera_coroutine(coroutine<void>::pull_type &VSYNC){
     /* Init cadidates */
-    pop.init(20);
+    pop.init(70);
     VSYNC();
     
     while(true){
@@ -83,62 +87,24 @@ void ofApp::step_GACamera_coroutine(coroutine<void>::pull_type &VSYNC){
             if(i < pop.size()){
                 // create phenotype
                 decode(pop.candidate(i));
-                pop.candidate(i)->image->draw(0, 0, ofGetWindowWidth(), ofGetWindowHeight());
+                pop.candidate(i)->image->draw(projection_rect.x, projection_rect.y, projection_rect.width, projection_rect.height);
             }
             if(i >= cameraLatency){
+                shared_ptr<GA::Candidate> candidate = pop.candidate(i-cameraLatency);
                 shared_ptr<ofImage> capture = camera->buffer;
-                evaluate(pop.candidate(i-cameraLatency), capture);
+                evaluate(candidate, capture);
             }
             VSYNC();
         }
         
         // keep a copy of the best candidate
         best_candidate = pop.best();
+        best_history.push_back(pop.best()->cost);
         VSYNC();
         
         /* Breed new generation */
         pop.breed();
     }
-}
-
-void ofApp::camera_sync_test(){
-    static int latency{4};
-    static deque<shared_ptr<ofImage>> images(10);
-    static deque<shared_ptr<ofImage>> captures(10);
-    static int k=0;
-    
-    ImGui::Begin("");
-    shared_ptr<ofImage> image = make_image(ofVec2f(320, 240), [&](int w, int h){
-        ofPushMatrix();
-        string text = ofToString(remainder(k, 10));
-        ofRectangle rect = font.getStringBoundingBox(text, 0, 0);
-        ofScale(w/rect.width, h/rect.height);
-        ofDrawMeshString(font, text, 0, font.getSize(), 0);
-        ofPopMatrix();
-    });
-    ImGui::Image((void *)(intptr_t) (image && image->isAllocated() ? image->getTexture().getTextureData().textureID : 0), ImVec2(image->getWidth(), image->getHeight()));
-    ImGui::End();
-    images[remainder(k, 10)] = image;
-    
-    shared_ptr<ofImage> capture = make_image(ofVec2f(320, 240), [&](int w, int h){
-        camera->buffer->draw(0,0);
-    });
-    
-    captures[remainder(k-latency, 10)] = capture;
-    
-    ImGui::InputInt("latency", &latency);
-    ImGui::BeginGroup();
-    for(auto i=0; i<images.size(); i++) //captures[i]->draw(40, i*40, 40, 40);
-        ImGui::Image((void *)(intptr_t) (images[i] && images[i]->isAllocated() ? images[i]->getTexture().getTextureData().textureID : 0), ImVec2(40, 40));
-    ImGui::EndGroup();
-    ImGui::SameLine();
-    ImGui::BeginGroup();
-    
-    for(auto i=0; i<captures.size(); i++) //captures[i]->draw(40, i*40, 40, 40);
-        ImGui::Image((void *)(intptr_t) (captures[i] && captures[i]->isAllocated() ? captures[i]->getTexture().getTextureData().textureID : 0), ImVec2(40, 40));
-    ImGui::EndGroup();
-        
-    k++;
 }
 
 void ofApp::step_GAImage_coroutine(coroutine<void>::pull_type &VSYNC){
@@ -168,14 +134,7 @@ void ofApp::step_GAImage_coroutine(coroutine<void>::pull_type &VSYNC){
     }
 }
 
-namespace ImGui{
-    void Image(shared_ptr<ofImage> image, const ImVec2 &size){
-        ImGui::Image((void *)(intptr_t) (image->isAllocated() ? image->getTexture().getTextureData().textureID : 0), size);
-    }
-    void Image(shared_ptr<ofImage> image){
-        ImGui::Image(image, ImVec2(image->getWidth(), image->getHeight()));
-    }
-}
+
 
 //--------------------------------------------------------------
 void ofApp::draw(){
@@ -204,12 +163,17 @@ void ofApp::draw(){
     gui.end();
 }
 
+
 void ofApp::onGui(){
-    ImGui::Begin("Greyout", 0, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
+    ImGui::Begin("Greyout", 0, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);    
     static vector<float> fpsv(50);
     fpsv[0] = 1.0/ofGetLastFrameTime();
     std::rotate(fpsv.begin(), fpsv.begin()+1, fpsv.end());
-    ImGui::PlotLines ("", fpsv.data(), fpsv.size(), 0, "", 0, 128);
+    ImGui::PlotLines ("", fpsv.data(), fpsv.size(), 0, "", 0, 128);ImGui::SameLine();
+    ImGui::Text("%0.0f", ofGetFrameRate());
+    
+    ImGui::DragFloatRange2("projection_rect h",&projection_rect.x, &projection_rect.width);
+    ImGui::DragFloatRange2("projection_rect v",&projection_rect.y, &projection_rect.height);
     
     static bool eye_window{true};
     static bool candidates_window{true};
@@ -259,7 +223,7 @@ void ofApp::onGui(){
     
     if(eye_window){
         ImGui::Begin("Eye", &eye_window);
-        ImGui::Image(camera->buffer, ImGui::GetContentRegionAvail());
+        ImGui::ClipImage("clip camera",camera->buffer, ImGui::GetContentRegionAvail(), &camera_clip.x, &camera_clip.y, &camera_clip.width, &camera_clip.height);
         ImGui::End();
     }
     
@@ -273,10 +237,11 @@ void ofApp::onGui(){
         ImGui::SliderInt("size", &size, 5, 200);
         if(folder_view==0)
             for(auto candidate : pop){
-                ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTexture().getTextureData().textureID : 0), ImVec2(size, size));
-                ImGui::SameLine();
-                ImGui::Image((void *)(intptr_t) (candidate->capture ? candidate->capture->getTexture().getTextureData().textureID : 0), ImVec2(size, size));
-                ImGui::SameLine();
+                ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTexture().getTextureData().textureID : 0), ImVec2(size, size)); ImGui::SameLine();
+                if(candidate->image)
+                    ImGui::Text("[%0.0fx%0.0f]", candidate->image->getWidth(), candidate->image->getHeight()); ImGui::SameLine();
+                
+                ImGui::Image((void *)(intptr_t) (candidate->capture ? candidate->capture->getTexture().getTextureData().textureID : 0), ImVec2(size, size)); ImGui::SameLine();
                 ImGui::Text("%6.3f", candidate->cost);
             }
         
@@ -297,9 +262,9 @@ void ofApp::onGui(){
         if(pop.cost_history.size()>0){
             ImGui::Text("Current best: %6.3f", pop.cost_history[pop.cost_history.size()-1]);
             ImVec2 size = ImGui::GetContentRegionAvail();
-            static vector<float> bestv(0);
-            bestv.push_back(pop.best()->cost);
-            ImGui::PlotLines("", bestv.data(), bestv.size(), 0, "", 0, 99/*max cost*/, ImVec2(256, 128));
+            if(ImGui::Button("reset"))
+                best_history.clear();
+            ImGui::PlotLines("", best_history.data(), best_history.size(), 0, "", 0, 99/*max cost*/, ImVec2(256, 128));
         }
         ImGui::End();
     }
