@@ -107,12 +107,21 @@ void ImGui::Eye(ofEye & eye){
     if(ImGui::SliderInt("hue", &hue, 0, 255))
         eye.setHue(hue);
     
-    int balance[] {eye.getRedBalance(), eye.getGreenBalance(), eye.getBlueBalance()};
-    if(ImGui::SliderInt3("balance", balance, 0, 255)){
-        eye.setRedBalance(balance[0]);
-        eye.setGreenBalance(balance[1]);
-        eye.setBlueBalance(balance[2]);
+//    int balance[] {eye.getRedBalance(), eye.getGreenBalance(), eye.getBlueBalance()};
+//    if(ImGui::SliderInt3("balance", balance, 0, 255)){
+//        eye.setRedBalance(balance[0]);
+//        eye.setGreenBalance(balance[1]);
+//        eye.setBlueBalance(balance[2]);
+//    }
+    
+
+    static float balancev[] {eye.getRedBalance()/255.0f, eye.getGreenBalance()/255.0f, eye.getBlueBalance()/255.0f};
+    if(ImGui::ColorEdit3("balance", balancev)){
+        eye.setRedBalance(balancev[0]*255.0f);
+        eye.setGreenBalance(balancev[1]*255.0f);
+        eye.setBlueBalance(balancev[2]*255.0f);
     }
+    cout << balancev[0] << ", " << balancev[1] << ", " << balancev[2] << endl;
     
     bool flip[] {eye.getFlipH(), eye.getFlipV()};
     if(ImGui::Checkbox("horizontal", &flip[0]))

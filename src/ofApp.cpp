@@ -87,7 +87,10 @@ void ofApp::step_GACamera_coroutine(coroutine<void>::pull_type &VSYNC){
             if(i < pop.size()){
                 // create phenotype
                 decode(pop.candidate(i));
-                pop.candidate(i)->image->draw(projection_rect.x, projection_rect.y, projection_rect.width, projection_rect.height);
+                ImGui::Begin("Projection");
+                ImGui::Image(pop.candidate(i)->image, ImGui::GetContentRegionAvail());
+                ImGui::End();
+//                pop.candidate(i)->image->draw(projection_rect.x, projection_rect.y, projection_rect.width, projection_rect.height);
             }
             if(i >= cameraLatency){
                 shared_ptr<GA::Candidate> candidate = pop.candidate(i-cameraLatency);
@@ -134,10 +137,11 @@ void ofApp::step_GAImage_coroutine(coroutine<void>::pull_type &VSYNC){
     }
 }
 
-
-
 //--------------------------------------------------------------
 void ofApp::draw(){
+    gui.begin();
+    ImGui::Begin("Projection", 0, ImGuiWindowFlags_NoTitleBar);
+    ImGui::End();
     static int algorithm{0};
     switch (algorithm) {
         case 0:
@@ -154,7 +158,6 @@ void ofApp::draw(){
     }
     
     /* GUI */
-    gui.begin();
     ImGui::Text("algorithm");
     ImGui::RadioButton("pause", &algorithm, 0);
     ImGui::RadioButton("image", &algorithm, 1);
@@ -163,9 +166,8 @@ void ofApp::draw(){
     gui.end();
 }
 
-
 void ofApp::onGui(){
-    ImGui::Begin("Greyout", 0, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);    
+    ImGui::Begin("Greyout", 0, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
     static vector<float> fpsv(50);
     fpsv[0] = 1.0/ofGetLastFrameTime();
     std::rotate(fpsv.begin(), fpsv.begin()+1, fpsv.end());
