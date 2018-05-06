@@ -46,21 +46,16 @@ void draw_test_stripes(shared_ptr<ofBaseGLRenderer> gl, ofVec2f size, float deg)
     }
 }
 
-shared_ptr<ofImage> make_image(ofVec2f size, const std::function<void(int w, int h)>& f){
-    
+shared_ptr<ofTexture> make_texture(ofVec2f size, const std::function<void(int w, int h)>& f){
     ofFbo fbo;
-    fbo.allocate(size.x, size.y);
+    fbo.allocate(size.x, size.y, GL_RGB);
     
     fbo.begin();
         ofClear(0,255,0,255);
         f(size.x, size.y);
     fbo.end();
-    
-    shared_ptr<ofImage> image = make_shared<ofImage>();
-    fbo.readToPixels(*image);
-    image->update();
-    
-    return image;
+
+    return std::make_shared<ofTexture>(std::move(fbo.getTexture()));
 }
 
 ofVec2f bw_size(size_t length){
@@ -73,19 +68,17 @@ void draw_bw(int * data, size_t length, float x, float y, float w, float h){
     int CHANNELS = 3;
     auto size = bw_size(length);
     
-    uint8_t * data2 = new uint8_t[length];
+    unsigned char data2[length];
     for(int y=0; y < size.y; y++)
         for(int x=0; x < size.x; x++){
             int rgb_index = y*size.x + x;
             data2[rgb_index + 0] = data[rgb_index+0];
         }
     
-    ofImage img;
-    img.allocate(size.x, size.y, OF_IMAGE_GRAYSCALE);
-    img.setFromPixels(data2, size.x, size.y, OF_IMAGE_GRAYSCALE);
-    img.update();
-    img.draw(x, y, w, h);
-    delete[] data2;
+    ofTexture tex;
+    tex.loadData(data2, (int)size.x, (int)size.y, GL_LUMINANCE);
+    cout << "draw greyscale" << endl;
+    tex.draw(x, y, w, h);
 }
 
 ofVec2f rgb_size(size_t length, size_t channels){
@@ -98,7 +91,7 @@ void draw_rgb(int * data, size_t length, float x, float y, float w, float h){
     int CHANNELS = 3;
     auto size = rgb_size(length, CHANNELS);
     
-    uint8_t * data2 = new uint8_t[length];
+    unsigned char data2[length];
     for(int y=0; y < size.y; y++)
         for(int x=0; x < size.x; x++){
             int rgb_index = y*size.x*CHANNELS + x*CHANNELS;
@@ -107,18 +100,18 @@ void draw_rgb(int * data, size_t length, float x, float y, float w, float h){
             data2[rgb_index + 2] = data[rgb_index+2];
         }
     
-    ofImage img;
-    img.allocate(size.x, size.y, OF_IMAGE_COLOR);
-    img.setFromPixels(data2, size.x, size.y, OF_IMAGE_COLOR);
-    img.update();
-    img.draw(x, y, w, h);
-    delete[] data2;
+    ofTexture tex;
+    tex.loadData(data2, size.x, size.y, GL_RGB);
+    tex.draw(x,y,w,h);
+
 }
 
-float compare_images(const ofImage & A, const ofImage & B){
+float compare_textures(const ofTexture & A, const ofTexture & B){
     //    assert(A.getWidth() == B.getWidth() && A.getHeight() == B.getHeight());
-    ofPixels pixelsA = A.getPixels();
-    ofPixels pixelsB = B.getPixels();
+    ofPixels pixelsA;
+    A.readToPixels(pixelsA);
+    ofPixels pixelsB;
+    B.readToPixels(pixelsB);
     
     float diff {0};
     for(size_t x=0; x<pixelsA.getWidth(); x++){
@@ -135,10 +128,12 @@ float compare_images(const ofImage & A, const ofImage & B){
     return diff;
 }
 
-float compare_brightness(const ofImage & A, const ofImage & B){
+float compare_brightness(const ofTexture & A, const ofTexture & B){
     //    assert(A.getWidth() == B.getWidth() && A.getHeight() == B.getHeight());
-    ofPixels pixelsA = A.getPixels();
-    ofPixels pixelsB = B.getPixels();
+    ofPixels pixelsA;
+    A.readToPixels(pixelsA);
+    ofPixels pixelsB;
+    B.readToPixels(pixelsB);
     
     float diff {0};
     for(size_t x=0; x<pixelsA.getWidth(); x++){
@@ -154,9 +149,10 @@ float compare_brightness(const ofImage & A, const ofImage & B){
     return diff;
 }
 
-float compare_brightness_to_grey(const ofImage & A){
+float compare_brightness_to_grey(const ofTexture & A){
     //    assert(A.getWidth() == B.getWidth() && A.getHeight() == B.getHeight());
-    ofPixels pixelsA = A.getPixels();
+    ofPixels pixelsA;
+    A.readToPixels(pixelsA);
     
     float diff {0};
     for(size_t x=0; x<pixelsA.getWidth(); x++){

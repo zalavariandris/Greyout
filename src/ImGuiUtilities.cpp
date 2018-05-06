@@ -9,14 +9,14 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
 
-void ImGui::Image(shared_ptr<ofImage> image, const ImVec2 &size){
-    ImGui::Image((void *)(intptr_t) (image->isAllocated() ? image->getTexture().getTextureData().textureID : 0), size);
+void ImGui::Image(shared_ptr<ofTexture> image, const ImVec2 &size){
+    ImGui::Image((void *)(intptr_t) (image->isAllocated() ? image->getTextureData().textureID : 0), size);
 }
-void ImGui::Image(shared_ptr<ofImage> image){
+void ImGui::Image(shared_ptr<ofTexture> image){
     ImGui::Image(image, ImVec2(image->getWidth(), image->getHeight()));
 }
 
-void ImGui::ClipImage(const char* label, shared_ptr<ofImage> image, const ImVec2 &size, float* x, float* y, float* w, float* h){
+void ImGui::ClipImage(const char* label, shared_ptr<ofTexture> image, const ImVec2 &size, float* x, float* y, float* w, float* h){
     
     Image(image, size);
     ImGuiWindow* window = GetCurrentWindow();
@@ -188,9 +188,9 @@ void ImGui::Pop(GA::Population & pop){
     ImGui::Text("Size: %i", (int)pop.size());
     ImVec2 size(20, 20);
     for(auto candidate : pop){
-        ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTexture().getTextureData().textureID : 0), size);
+        ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTextureData().textureID : 0), size);
         ImGui::SameLine();
-        ImGui::Image((void *)(intptr_t) (candidate->capture ? candidate->capture->getTexture().getTextureData().textureID : 0), size);
+        ImGui::Image((void *)(intptr_t) (candidate->capture ? candidate->capture->getTextureData().textureID : 0), size);
         ImGui::SameLine();
         
         ImGui::Text("%6.3f", candidate->cost);

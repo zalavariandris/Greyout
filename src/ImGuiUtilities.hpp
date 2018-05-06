@@ -19,8 +19,8 @@ namespace ImGui{
 //    void Pro(Profiler & profiler);
     void Pop(GA::Population & pop);
     
-    void Image(shared_ptr<ofImage> image, const ImVec2 &size);
-    void Image(shared_ptr<ofImage> image);
-    void ClipImage(const char* label, shared_ptr<ofImage> image, const ImVec2 &size, float* x, float* y, float* w, float* h);
+    void Image(shared_ptr<ofTexture> image, const ImVec2 &size);
+    void Image(shared_ptr<ofTexture> image);
+    void ClipImage(const char* label, shared_ptr<ofTexture> image, const ImVec2 &size, float* x, float* y, float* w, float* h);
 }
 

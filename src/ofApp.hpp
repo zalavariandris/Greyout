@@ -44,7 +44,7 @@ class ofApp : public ofBaseApp{
     shared_ptr<GA::Candidate> best_candidate;
     bool play;
     void decode(shared_ptr<GA::Candidate> candidate);
-    void evaluate(shared_ptr<GA::Candidate> candidate, shared_ptr<ofImage> environment);
+    void evaluate(shared_ptr<GA::Candidate> candidate, shared_ptr<ofTexture> environment);
     
     // properties
     enum Mutation:int {MutationUniform, MutationTweak};

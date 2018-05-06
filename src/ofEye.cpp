@@ -7,7 +7,7 @@
 
 #include "ofEye.hpp"
 void ofEye::setup(){
-    buffer = make_shared<ofImage>();
+    buffer = make_shared<ofTexture>();
 }
 void ofEye::update(){
     if(!device){
@@ -23,7 +23,7 @@ void ofEye::update(){
             for(int i=0; i<320 * 240 * 3; i+=3)
                 data[i+0] = data[i+1] = data[i+2] = rand()%255;
             
-            buffer->setFromPixels(data, 320, 240, OF_IMAGE_COLOR);
+            buffer->loadData(data, 320, 240, GL_RGB);
             
         }
     }
@@ -32,7 +32,7 @@ void ofEye::update(){
         // capture camera to image
         unsigned char * data = new unsigned char[device->getWidth()*device->getHeight()*3];
         device->getFrame(data);
-        buffer->setFromPixels(data, device->getWidth(), device->getHeight(), OF_IMAGE_COLOR);
+        buffer->loadData(data, 320, 240, GL_RGB);
         delete[] data;
     }
 }

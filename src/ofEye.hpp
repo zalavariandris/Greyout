@@ -12,7 +12,7 @@ class ofEye{
 public:
     void setup();
     void update();
-    shared_ptr<ofImage> buffer;
+    shared_ptr<ofTexture> buffer;
     
     // properties
     bool getAutogain() const;

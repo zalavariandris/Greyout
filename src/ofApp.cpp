@@ -29,18 +29,18 @@ void ofApp::decode(shared_ptr<GA::Candidate> candidate){
     // create phenotype
     if(decodeMethod == DecodeColor){
         ofVec2f size = rgb_size(candidate->genes->length(), 3);
-        candidate->image = make_image(size, [&](int w, int h){
+        candidate->image = make_texture(size, [&](int w, int h){
             ofSetColor(255, 255, 255);
             draw_rgb(candidate->genes->sequence(), candidate->genes->length(), 0, 0, w, h);
         });
     }else if(decodeMethod == DecodeGreyscale){
         ofVec2f size = bw_size(candidate->genes->length());
-        candidate->image = make_image(size, [&](int w, int h){
+        candidate->image = make_texture(size, [&](int w, int h){
             ofSetColor(255, 255, 255);
             draw_bw(candidate->genes->sequence(), candidate->genes->length(), 0, 0, w, h);
         });
     }else if(decodeMethod == DecodeIndex){
-        candidate->image = make_image(ofVec2f(128, 128), [&](int w, int h){
+        candidate->image = make_texture(ofVec2f(128, 128), [&](int w, int h){
             ofPushMatrix();
             auto it = std::find(pop.candidates.begin(), pop.candidates.end(), candidate);
             auto idx = std::distance(pop.begin(), it);
@@ -53,22 +53,22 @@ void ofApp::decode(shared_ptr<GA::Candidate> candidate){
     }
 }
 
-void ofApp::evaluate(shared_ptr<GA::Candidate> candidate, shared_ptr<ofImage> environment){
+void ofApp::evaluate(shared_ptr<GA::Candidate> candidate, shared_ptr<ofTexture> environment){
     if(evaluateMethod == EvaluateCompareColor){
         ofVec2f size = rgb_size(candidate->genes->length(), 3);
-        candidate->capture = make_image(size, [&](int w, int h){
+        candidate->capture = make_texture(size, [&](int w, int h){
             environment->drawSubsection(0, 0, w, h, camera_clip.x, camera_clip.y, camera_clip.width, camera_clip.height);
         });;
-        candidate->cost = compare_images(*candidate->image, *candidate->capture);
+        candidate->cost = compare_textures(*candidate->image, *candidate->capture);
     }else if(evaluateMethod == EvaluateCompareGreyscale){
         ofVec2f size = bw_size(candidate->genes->length());
-        candidate->capture = make_image(size, [&](int w, int h){
+        candidate->capture = make_texture(size, [&](int w, int h){
             environment->drawSubsection(0, 0, w, h, camera_clip.x, camera_clip.y, camera_clip.width, camera_clip.height);
         });
         candidate->cost = compare_brightness(*candidate->image, *candidate->capture);
     }else if(evaluateMethod == EvaluateCaptureGreyness){
         ofVec2f size = bw_size(candidate->genes->length());
-        candidate->capture = make_image(size, [&](int w, int h){
+        candidate->capture = make_texture(size, [&](int w, int h){
             environment->drawSubsection(0, 0, w, h, camera_clip.x, camera_clip.y, camera_clip.width, camera_clip.height);
         });
         candidate->cost = compare_brightness_to_grey(*candidate->capture);
@@ -87,14 +87,14 @@ void ofApp::step_GACamera_coroutine(coroutine<void>::pull_type &VSYNC){
             if(i < pop.size()){
                 // create phenotype
                 decode(pop.candidate(i));
-                ImGui::Begin("Projection");
-                ImGui::Image(pop.candidate(i)->image, ImGui::GetContentRegionAvail());
-                ImGui::End();
-//                pop.candidate(i)->image->draw(projection_rect.x, projection_rect.y, projection_rect.width, projection_rect.height);
+//                ImGui::Begin("Projection");
+//                ImGui::Image(pop.candidate(i)->image, ImGui::GetContentRegionAvail());
+//                ImGui::End();
+                pop.candidate(i)->image->draw(projection_rect.x, projection_rect.y, projection_rect.width, projection_rect.height);
             }
             if(i >= cameraLatency){
                 shared_ptr<GA::Candidate> candidate = pop.candidate(i-cameraLatency);
-                shared_ptr<ofImage> capture = camera->buffer;
+                shared_ptr<ofTexture> capture = camera->buffer;
                 evaluate(candidate, capture);
             }
             VSYNC();
@@ -124,7 +124,7 @@ void ofApp::step_GAImage_coroutine(coroutine<void>::pull_type &VSYNC){
         
         // Evaluate
         for(auto candidate : pop.candidates){
-            shared_ptr<ofImage> capture = camera->buffer;
+            shared_ptr<ofTexture> capture = camera->buffer;
             evaluate(candidate, capture);
         }
         
@@ -142,7 +142,7 @@ void ofApp::draw(){
     gui.begin();
     ImGui::Begin("Projection", 0, ImGuiWindowFlags_NoTitleBar);
     ImGui::End();
-    static int algorithm{0};
+    static int algorithm{1};
     switch (algorithm) {
         case 0:
             /* do nothing */
@@ -239,17 +239,17 @@ void ofApp::onGui(){
         ImGui::SliderInt("size", &size, 5, 200);
         if(folder_view==0)
             for(auto candidate : pop){
-                ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTexture().getTextureData().textureID : 0), ImVec2(size, size)); ImGui::SameLine();
+                ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTextureData().textureID : 0), ImVec2(size, size)); ImGui::SameLine();
                 if(candidate->image)
                     ImGui::Text("[%0.0fx%0.0f]", candidate->image->getWidth(), candidate->image->getHeight()); ImGui::SameLine();
                 
-                ImGui::Image((void *)(intptr_t) (candidate->capture ? candidate->capture->getTexture().getTextureData().textureID : 0), ImVec2(size, size)); ImGui::SameLine();
+                ImGui::Image((void *)(intptr_t) (candidate->capture ? candidate->capture->getTextureData().textureID : 0), ImVec2(size, size)); ImGui::SameLine();
                 ImGui::Text("%6.3f", candidate->cost);
             }
         
         else if(folder_view==1)
             for(auto candidate : pop){
-                ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTexture().getTextureData().textureID : 0), ImVec2(size, size));
+                ImGui::Image((void *)(intptr_t) (candidate->image ? candidate->image->getTextureData().textureID : 0), ImVec2(size, size));
                 
                 if(ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + size <= ImGui::GetContentRegionAvailWidth())
                     ImGui::SameLine();

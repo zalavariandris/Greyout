@@ -38,8 +38,8 @@ namespace GA{
     
     struct Candidate{
         std::shared_ptr<Chromosome> genes;
-        shared_ptr<ofImage> image;
-        shared_ptr<ofImage> capture;
+        shared_ptr<ofTexture> image;
+        shared_ptr<ofTexture> capture;
         float cost {std::numeric_limits<float>::infinity()};
     };
 
